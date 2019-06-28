@@ -655,6 +655,38 @@ namespace morph {
     class RD_Help
     {
     public:
+
+        /*!
+         * Use get_contours to get the contours, then save them in HDF5 format in the
+         */
+        static void save_contours (HexGrid* hg,
+                                   vector<vector<Flt> >& f,
+                                   Flt threshold,
+                                   const string& filepath) {
+
+            // First get the contours:
+            vector<list<Hex> > ctrs = RD_Help<Flt>::get_contours (hg, f, threshold);
+
+            // Now save them.
+            HdfData hgdata (filepath, true);
+            string h5path("");
+
+            for (int c=0; c<ctrs.size(); ++c) {
+                // for i in list, save Hex
+                list<Hex>::const_iterator h = ctrs[c].begin();
+                unsigned int hcount = 0;
+                while (h != ctrs[c].end()) {
+                    // Make up a path
+                    h5path = "/ctrs/" + to_string(c) + "/" + to_string(hcount);
+                    h->save (hgdata, h5path);
+                    ++h;
+                    ++hcount;
+                }
+                h5path = "/ctrs/" + to_string(c) + "/hcount";
+                hgdata.add_val (h5path.c_str(), hcount);
+            }
+        };
+
         /*!
          * Obtain the contours (as a vector of list<Hex>) in the scalar
          * fields f, where threshold is crossed.
@@ -748,7 +780,7 @@ namespace morph {
 
             return rtn;
         }
-    }; // RD_Helper
+    }; // RD_Help
 
 } // namespace morph
 
