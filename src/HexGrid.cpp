@@ -574,6 +574,8 @@ morph::HexGrid::regionBoundaryContiguous (list<Hex>::const_iterator bhi, list<He
     return rtn;
 }
 
+//ensures that client code calling this function is not broken by the change
+//to setBoundary(bpoints) which adds an extra bool argument
 void
 morph::HexGrid::setBoundary (const BezCurvePath<float>& p)
 {
@@ -581,69 +583,129 @@ morph::HexGrid::setBoundary (const BezCurvePath<float>& p)
 
     if (!this->boundary.isNull()) {
         DBG ("Applying boundary...");
+	    cout<<"in boundaryDRegion with non-Null boundary" << endl;
         // Compute the points on the boundary using half of the hex to hex spacing as the step
         // size. The 'true' argument inverts the y axis.
         this->boundary.computePoints (this->d/2.0f, true);
         vector<BezCoord<float>> bpoints = this->boundary.getPoints();
-        this->setBoundary (bpoints);
+        this->setBoundary (bpoints,true);
     }
+	else
+	{
+	    cout<<"in boundaryDRegion with Null boundary" << endl;
+	}
+
 }
 
+
+//wrapper for DRegion code, does not reset centroid
+void
+morph::HexGrid::setBoundaryDRegion (const BezCurvePath<float>& p)
+{
+    this->boundary = p;
+
+    if (!this->boundary.isNull()) {
+        DBG ("Applying boundary...");
+	    cout<<"in boundaryDRegion with non-Null boundary" << endl;
+
+        // Compute the points on the boundary using half of the hex to hex spacing as the step
+        // size. The 'true' argument inverts the y axis.
+		this->boundary.computePoints(this->d/2.0f,true);
+        vector<BezCoord<float>> bpoints = this->boundary.getPoints();
+		// call to setBoundary without recentering the coodinates
+        this->setBoundary (bpoints,false);
+    }
+	else
+	{
+	    cout<<"in boundaryDRegion with Null boundary" << endl;
+	}
+}
+
+
+// wrapper functions for setBoundary
+// this one ensures that current code does not break
 void
 morph::HexGrid::setBoundary (vector<BezCoord<float>>& bpoints)
 {
+    morph::HexGrid::setBoundary (bpoints, true);
+}
+
+// this one works with DRegion class
+void
+morph::HexGrid::setBoundaryDRegion (vector<BezCoord<float>>& bpoints)
+{
+    morph::HexGrid::setBoundary (bpoints, false);
+}
+
+// rewrite of this method to allow for an extra bool argument to determine
+// if the centroid gets remapped (true) or not (false)
+void
+morph::HexGrid::setBoundary (vector<BezCoord<float>>& bpoints, bool loffset)
+{
+    cout <<"in setBoundary"<<endl;
     this->boundaryCentroid = BezCurvePath<float>::getCentroid (bpoints);
-    DBG ("Boundary centroid: " << boundaryCentroid.first << "," << boundaryCentroid.second);
+	// code to offset so boundary centroid moves to (0,0)
     auto bpi = bpoints.begin();
-    while (bpi != bpoints.end()) {
-        bpi->subtract (this->boundaryCentroid);
-        ++bpi;
-    }
-    // Copy the centroid
-    this->originalBoundaryCentroid = this->boundaryCentroid;
-    // Zero out the centroid, as the boundary is now centred on 0,0
-    this->boundaryCentroid = make_pair (0.0, 0.0);
+    //if offset is true origin of coordinate system is changed
+    if (loffset) {
+        DBG ("Boundary centroid: " << boundaryCentroid.first << "," << boundaryCentroid.second);
+        cout << "Boundary centroid: loffset true " << boundaryCentroid.first << "," << boundaryCentroid.second<<endl;
+        while (bpi != bpoints.end()) {
+            bpi->subtract (this->boundaryCentroid);
+            ++bpi;
+        }
+        // Copy the centroid
+        this->originalBoundaryCentroid = this->boundaryCentroid;
+        // Zero out the centroid, as the boundary is now centred on 0,0
+        this->boundaryCentroid = make_pair (0.0, 0.0);
+        bpi = bpoints.begin();
+    } // end of code to offset
 
     list<Hex>::iterator nearbyBoundaryPoint = this->hexen.begin(); // i.e the Hex at 0,0
-    bpi = bpoints.begin();
+    //bpi = bpoints.begin();
+     cout << "Boundary centroid: " << boundaryCentroid.first << "," << boundaryCentroid.second<<endl;
     while (bpi != bpoints.end()) {
         nearbyBoundaryPoint = this->setBoundary (*bpi++, nearbyBoundaryPoint);
-        DBG2 ("Added boundary point " << nearbyBoundaryPoint->ri << "," << nearbyBoundaryPoint->gi);
-    }
+	DBG2 ("Added boundary point " << nearbyBoundaryPoint->ri << "," << nearbyBoundaryPoint->gi);
+	cout << "Added boundary point " << nearbyBoundaryPoint->ri << "," << nearbyBoundaryPoint->gi << endl;
+}
+cout << "after boundary point loop" << endl;
+// Check that the boundary is contiguous.
+{
+	set<unsigned int> seen;
+	list<Hex>::iterator hi = nearbyBoundaryPoint;
+	if (this->boundaryContiguous (nearbyBoundaryPoint, hi, seen) == false) {
+		stringstream ee;
+		ee << "The constructed boundary is not a contiguous sequence of hexes.";
+		throw runtime_error (ee.str());
+	}
+}
 
-    // Check that the boundary is contiguous.
-    {
-        set<unsigned int> seen;
-        list<Hex>::iterator hi = nearbyBoundaryPoint;
-        if (this->boundaryContiguous (nearbyBoundaryPoint, hi, seen) == false) {
-            stringstream ee;
-            ee << "The constructed boundary is not a contiguous sequence of hexes.";
-            throw runtime_error (ee.str());
-        }
-    }
+if (this->domainShape == morph::HexDomainShape::Boundary) {
+    cout<<"in loop on HexDomainShape"<<endl;
+	this->discardOutsideBoundary();
+	// Now populate the d_ vectors
+	cout<<"before populate vectors"<<endl;
+	this->populate_d_vectors();
+	cout<<"after populate vectors"<<endl;
 
-    if (this->domainShape == morph::HexDomainShape::Boundary) {
-
-        this->discardOutsideBoundary();
-        // Now populate the d_ vectors
-        this->populate_d_vectors();
-
-    } else {
-        // Given that the boundary IS contiguous, can now set a domain of hexes (rectangular,
-        // parallelogram or hexagonal region, such that computations can be efficient) and discard
-        // hexes outside the domain.  setDomain() will define a regular domain, then discard those
-        // hexes outside the regular domain and populate all the d_ vectors.
-        this->setDomain();
-    }
+} else {
+	// Given that the boundary IS contiguous, can now set a domain of hexes (rectangular,
+	// parallelogram or hexagonal region, such that computations can be efficient) and discard
+	// hexes outside the domain.  setDomain() will define a regular domain, then discard those
+	// hexes outside the regular domain and populate all the d_ vectors.
+	this->setDomain();
+}
+cout<<"at end of setBoundary"<<endl;
 }
 
 list<Hex>::iterator
 morph::HexGrid::setBoundary (const BezCoord<float>& point, list<Hex>::iterator startFrom)
 {
-    // Searching from "startFrom", search out, via neighbours until the hex closest to the boundary
-    // point is located. How to know if it's closest? When all neighbours are further from the
-    // currently closest point?
-    list<Hex>::iterator h = this->findHexNearPoint (point, startFrom);
+// Searching from "startFrom", search out, via neighbours until the hex closest to the boundary
+// point is located. How to know if it's closest? When all neighbours are further from the
+// currently closest point?
+list<Hex>::iterator h = this->findHexNearPoint (point, startFrom);
 
     // Mark it for being on the boundary
     h->setFlag (HEX_IS_BOUNDARY | HEX_INSIDE_BOUNDARY);
@@ -997,20 +1059,24 @@ morph::HexGrid::markHexesInside (list<Hex>::iterator centre_hi,
         bhi = bhi->nne;
     }
     list<Hex>::iterator bhi_start = bhi;
-
+    cout<<"inside markHexesInside after first while" <<endl;
     // Mark from first boundary hex and across the region
     //DBG ("markFromBoundary with hex " << bhi->outputCart());
     this->markFromBoundary (bhi, bdryFlag, insideFlag);
 
+    cout<<"inside markHexesInside after mark from boundary" <<endl;
     // Find the first next neighbour:
     list<Hex>::iterator bhi_last = this->hexen.end();
     bool gotnext = this->findNextBoundaryNeighbour (bhi, bhi_last, bdryFlag, insideFlag);
+    cout<<"inside markHexesInside after findNextBoundaryNeighbour" << gotnext<< endl;
     // Loop around boundary, marking inwards in all possible directions from each boundary hex
     while (gotnext && bhi != bhi_start) {
         //DBG ("0 markFromBoundary with hex " << bhi->outputCart());
+        cout<<"inside second while gotnext = " << gotnext<< endl;
         this->markFromBoundary (bhi, bdryFlag, insideFlag);
         gotnext = this->findNextBoundaryNeighbour (bhi, bhi_last, bdryFlag, insideFlag);
     }
+    cout<<"inside markHexesInside after second while" <<endl;
 }
 
 void
@@ -1529,11 +1595,14 @@ morph::HexGrid::discardOutsideDomain (void)
 void
 morph::HexGrid::discardOutsideBoundary (void)
 {
+    cout<<"inside discardOutsideBoundary"<<endl;
     // Mark those hexes inside the boundary
     list<Hex>::iterator centroidHex = this->findHexNearest (this->boundaryCentroid);
+	cout<<"before markHexesInside"<<endl;
     this->markHexesInside (centroidHex);
+	cout<<"after markHexesInside"<<endl;
 
-#ifdef DEBUG
+//#ifdef DEBUG
     // Do a little count of them:
     unsigned int numInside = 0;
     unsigned int numOutside = 0;
@@ -1545,7 +1614,8 @@ morph::HexGrid::discardOutsideBoundary (void)
         }
     }
     DBG("Num inside: " << numInside << "; num outside: " << numOutside);
-#endif
+    cout << "Num inside: " << numInside << "; num outside: " << numOutside;
+//#endif
 
     // Run through and discard those hexes outside the boundary:
     auto hi = this->hexen.begin();
@@ -1568,6 +1638,7 @@ morph::HexGrid::discardOutsideBoundary (void)
     // Finally, do something about the hexagonal grid vertices; set this to true to mark that the
     // iterators to the outermost vertices are no longer valid and shouldn't be used.
     this->gridReduced = true;
+    cout<<"at end of  discardOutsideBoundary"<<endl;
 }
 
 list<Hex>::iterator
