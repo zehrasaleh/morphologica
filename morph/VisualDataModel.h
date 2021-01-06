@@ -8,6 +8,7 @@
 #include <morph/VisualModel.h>
 #include <morph/ColourMap.h>
 #include <morph/Scale.h>
+#include <morph/linuxos/util.h>
 
 namespace morph {
 
@@ -62,8 +63,14 @@ namespace morph {
         //! Update the scalar data
         void updateData (const std::vector<T>* _data)
         {
+            //std::cout << "updateData. Memory in use at call: "
+            //          << morph::linuxos::getVmDataKb() << std::endl;;
             this->scalarData = _data;
+            //std::cout << "updateData. Memory in use after data copy: "
+            //          << morph::linuxos::getVmDataKb() << std::endl;;
             this->reinit();
+            //std::cout << "updateData. Memory in use after reinit: "
+            //          << morph::linuxos::getVmDataKb() << std::endl;;
         }
 
         //! Update the scalar data with an associated z-scaling
@@ -130,20 +137,38 @@ namespace morph {
         //! vertexPositions/Colors/Normals and indices before calling this method.
         void reinit_buffers()
         {
+            //std::cout << "reinit_buffers() START: "
+            //          << morph::linuxos::getVmDataKb() << std::endl;
             morph::gl::Util::checkError (__FILE__, __LINE__);
             // Now re-set up the VBOs
 #ifdef CAREFULLY_UNBIND_AND_REBIND // Experimenting with better buffer binding.
             glBindVertexArray (this->vao);
+            //std::cout << "reinit_buffers() after glBindVertexArray(): "
+            //          << morph::linuxos::getVmDataKb() << std::endl;
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->vbos[idxVBO]);
 #endif
+            //std::cout << "reinit_buffers() after glBindBuffer(): "
+            //          << morph::linuxos::getVmDataKb() << std::endl;
+            //std::cout << "updateData. Memory in use after reinit_buffers(): "
+            //          << morph::linuxos::getVmDataKb() << std::endl;
             int sz = this->indices.size() * sizeof(VBOint);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sz, this->indices.data(), GL_STATIC_DRAW);
+            glBufferData (GL_ELEMENT_ARRAY_BUFFER, sz, this->indices.data(), GL_DYNAMIC_DRAW);
+            //std::cout << "reinit_buffers() after glBufferData(): "
+            //          << morph::linuxos::getVmDataKb() << std::endl;
             this->setupVBO (this->vbos[posnVBO], this->vertexPositions, gl::posnLoc);
+            //std::cout << "reinit_buffers() after setupVBO(posn): "
+            //          << morph::linuxos::getVmDataKb() << std::endl;
             this->setupVBO (this->vbos[normVBO], this->vertexNormals, gl::normLoc);
+            //std::cout << "reinit_buffers() after setupVBO(norm): "
+            //          << morph::linuxos::getVmDataKb() << std::endl;
             this->setupVBO (this->vbos[colVBO], this->vertexColors, gl::colLoc);
+            //std::cout << "reinit_buffers() after setupVBO(col): "
+            //          << morph::linuxos::getVmDataKb() << std::endl;
 
 #ifdef CAREFULLY_UNBIND_AND_REBIND
             glBindVertexArray(0);
+            //std::cout << "reinit_buffers() after glBindVertexArray() (also END): "
+            //          << morph::linuxos::getVmDataKb() << std::endl;
             morph::gl::Util::checkError (__FILE__, __LINE__);
 #endif
         }
@@ -152,11 +177,22 @@ namespace morph {
         void reinit()
         {
             // Fixme: Better not to clear, then repeatedly pushback here:
+            //std::cout << "updateData. Memory in use at start of  reinit: "
+            //          << morph::linuxos::getVmDataKb() << std::endl;
+
             this->vertexPositions.clear();
             this->vertexNormals.clear();
             this->vertexColors.clear();
+            //std::cout << "updateData. Memory in use after vertex*.clear(): "
+            //          << morph::linuxos::getVmDataKb() << std::endl;
+
             this->initializeVertices();
+            //std::cout << "updateData. Memory in use after initializeVertices(): "
+            //          << morph::linuxos::getVmDataKb() << std::endl;
+
             this->reinit_buffers();
+            //std::cout << "updateData. Memory in use after reinit_buffers(): "
+            //          << morph::linuxos::getVmDataKb() << std::endl;
         }
 
         //! All data models use a a colour map. Change the type/hue of this colour map

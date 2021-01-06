@@ -126,7 +126,7 @@ namespace morph {
 
             //std::cout << "indices.size(): " << this->indices.size() << std::endl;
             int sz = this->indices.size() * sizeof(VBOint);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sz, this->indices.data(), GL_STATIC_DRAW);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sz, this->indices.data(), GL_DYNAMIC_DRAW);
             morph::gl::Util::checkError (__FILE__, __LINE__);
 
             // Binds data from the "C++ world" to the OpenGL shader world for
@@ -408,7 +408,7 @@ namespace morph {
             int sz = dat.size() * sizeof(float);
             glBindBuffer (GL_ARRAY_BUFFER, buf);
             morph::gl::Util::checkError (__FILE__, __LINE__);
-            glBufferData (GL_ARRAY_BUFFER, sz, dat.data(), GL_STATIC_DRAW);
+            glBufferData (GL_ARRAY_BUFFER, sz, dat.data(), GL_DYNAMIC_DRAW);
             morph::gl::Util::checkError (__FILE__, __LINE__);
             glVertexAttribPointer (bufferAttribPosition, 3, GL_FLOAT, GL_FALSE, 0, (void*)(0));
             morph::gl::Util::checkError (__FILE__, __LINE__);
