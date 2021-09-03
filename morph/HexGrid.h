@@ -543,6 +543,7 @@ namespace morph {
          */
         void setBoundary (const BezCurvePath<float>& p, bool loffset = true)
         {
+            std::cout << __FUNCTION__ << std::endl;
             this->boundary = p;
             if (!this->boundary.isNull()) {
                 // Compute the points on the boundary using half of the hex to hex
@@ -623,6 +624,7 @@ namespace morph {
                 // parallelogram or hexagonal region, such that computations can be efficient) and discard
                 // hexes outside the domain.  setDomain() will define a regular domain, then discard those
                 // hexes outside the regular domain and populate all the d_ vectors.
+                std::cout << "Not calling discardOutsideBoundary, instead call setDomain()...\n";
                 this->setDomain();
             }
         }
@@ -1084,6 +1086,7 @@ namespace morph {
             // Clear the d_ vectors.
             this->d_clear();
 
+            // HERE is the problem. For Rect/Parallel I build d_ vectors by rastering through. This is upsetting HexGridVisual somehow.
             // Now raster through the hexes, building the d_ vectors.
             if (this->domainShape == morph::HexDomainShape::Rectangle) {
                 bool next_row_ne = true;
@@ -1755,6 +1758,10 @@ namespace morph {
                 nextPrevRing = tmp;
             }
             DBG ("Finished creating " << this->hexen.size() << " hexes in " << maxRing << " rings.");
+
+            for (auto hexy : this->hexen) {
+                std::cout << "hexy " << hexy.ri << "," << hexy.gi << " or x/y " << hexy.x << "," << hexy.y << std::endl;
+            }
         }
 
         /*!
@@ -2391,6 +2398,7 @@ namespace morph {
          */
         void discardOutsideDomain (void)
         {
+            std::cout << __FUNCTION__ << ": before, hexen size is " << this->hexen.size() << std::endl;
             // Similar to discardOutsideBoundary:
             auto hi = this->hexen.begin();
             while (hi != this->hexen.end()) {
@@ -2401,6 +2409,7 @@ namespace morph {
                     ++hi;
                 }
             }
+            std::cout << __FUNCTION__ << ": AFTER, hexen size is " << this->hexen.size() << std::endl;
             this->renumberVectorIndices();
             this->gridReduced = true;
         }
@@ -2532,10 +2541,12 @@ namespace morph {
          */
         void renumberVectorIndices (void)
         {
+            std::cout << __FUNCTION__ << std::endl;
             unsigned int vi = 0;
             this->vhexen.clear();
             auto hi = this->hexen.begin();
             while (hi != this->hexen.end()) {
+                std::cout << "Hex at position " << hi->ri << "," << hi->gi << " or x/y " << hi->x << "," << hi->y << " will get index vi=" << vi << std::endl;
                 hi->vi = vi++;
                 this->vhexen.push_back (&(*hi));
                 ++hi;
