@@ -303,8 +303,13 @@ namespace morph {
                 break;
             }
             case ColourMapType::Rainbow:
-            {
-                c = ColourMap::rainbow (datum);
+            {   
+                if (datum != T{0}) {
+                    c = {0.0f, 1.0f, 0.0f};
+                } else {
+                    c = {1.0f, 0.0f, 0.0f};
+                }
+                //c = ColourMap::rainbow (datum);
                 break;
             }
             case ColourMapType::RainbowZeroBlack:

@@ -111,6 +111,12 @@ if(USE_GLEW)
   target_link_libraries(scatter GLEW::GLEW)
 endif()
 
+add_executable(percolation percolation.cpp)
+target_link_libraries(percolation OpenGL::GL glfw Freetype::Freetype)
+if(USE_GLEW)
+  target_link_libraries(percolation GLEW::GLEW)
+endif()
+
 add_executable(duochrome duochrome.cpp)
 target_link_libraries(duochrome OpenGL::GL glfw Freetype::Freetype)
 if(USE_GLEW)

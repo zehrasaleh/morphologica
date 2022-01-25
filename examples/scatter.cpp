@@ -24,6 +24,7 @@ int main (int argc, char** argv)
     // Blueish background:
     v.bgcolour = {0.6f, 0.6f, 0.8f, 0.5f};
     v.lightingEffects();
+    int dim = 5;
 
     try {
         morph::Vector<float, 3> offset = { 0.0, 0.0, 0.0 };
@@ -34,18 +35,24 @@ int main (int argc, char** argv)
         // VisualDataModel::setDataCoords(std::vector<Vector<float>>* _coords)
         // and setScalarData(const std::vector<T>* _data)
         // This is possible because morph::vVector derives from std::vector.
-        morph::vVector<morph::Vector<float, 3>> points(20*20);
-        morph::vVector<float> data(20*20);
-        size_t k = 0;
-        for (int i = -10; i < 10; ++i) {
-            for (int j = -10; j < 10; ++j) {
-                float x = 0.1*i;
-                float y = 0.1*j;
-                // z is some function of x, y
-                float z = x * std::exp(-(x*x) - (y*y));
-                points[k] = {x, y, z};
-                data[k] = z;
-                k++;
+        morph::vVector<morph::Vector<float, 3>> points(dim*dim*dim);
+        morph::vVector<float> data(dim*dim*dim);
+       size_t l = 0;
+        for (int i = 0; i < dim; ++i) {
+            for (int j = 0; j < dim; ++j) {
+                for (int k = 0; k < dim; ++k){
+
+                    float x = 0.5*i;
+                    float y = 0.5*j;
+                    float z = 0.5*k;
+                    // z is some function of x, y
+                    //float z = x * std::exp(-(x*x) - (y*y));
+                    points[l] = {x, y, z};
+                    data[l] = std::rand()%2 + 0.8;
+                    l++;
+
+                }
+               
             }
         }
 
