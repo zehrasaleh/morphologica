@@ -1,9 +1,10 @@
 /*!
  * \file
  *
- * \author Seb James
- * \date 2019
+ * \author Zehra Saleh
+ * \date 2022
  */
+
 #pragma once
 
 #ifndef USE_GLEW
@@ -38,17 +39,28 @@ namespace morph {
             this->colourScale.do_autoscale = true; //Z changed this
 
             
-            /*
-            VBOint idx = 1;
+            
+            /*VBOint idx = 0;
 
             std::array<float, 3> x_axis_col = {1.0f, 0.0f, 0.0f}; // Red
             std::array<float, 3> y_axis_col = {0.0f, 1.0f, 0.0f}; // Green
-            std::array<float, 3> z_axis_col = {0.0f, 0.0f, 1.0f}; // Blue
-
-
-            this->computeTube (idx, {1,1,1}, {0.2*1,0.2*1,0.2*1}, z_axis_col, z_axis_col,0.1); 
+            this->computeTube (this->idx, {0,0,0}, {0,0.2,0}, black_col, black_col,0.01); 
+            
             */
             
+        }
+
+
+
+        //Zehras function
+
+        void drawLine(morph::Vector<float> start, morph::Vector<float> end)
+        {
+            std::array<float, 3> black_col = {0.0f, 0.0f, 0.0f}; // Makes line black
+
+
+            this->computeTube (this->idx, start, end, black_col, black_col,0.005);  //computeTube (index, start position, end position, color out, color in, size of tube)
+
         }
 
         //! Quick hack to add an additional point

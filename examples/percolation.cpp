@@ -1,6 +1,14 @@
 /*
  * Visualize a test surface
  */
+
+/*!
+ * \file
+ *
+ * \author Zehra Saleh
+ * \date 2022
+ */
+
 #include <morph/Visual.h>
 #include <morph/ColourMap.h>
 #include <morph/PercolationVisual.h>
@@ -23,28 +31,96 @@ struct Particle {
 	Color color = Color::NONE;
 };
 
+const int cubic_length = 5;
+// Above, Right, Behind
+//Z is above direction
+//X is to the right direction
+//Y is behind
+
+bool isBondAbove(Particle latice_matrix[cubic_length][cubic_length][cubic_length], int x, int y, int z){
+
+    if (z == cubic_length - 1) { 
+        return false;
+    }
+
+    Color site_state = latice_matrix[x][y][z].color;
+    Color site_state_below = latice_matrix[x][y][z+1].color;
+
+    if (site_state == Color::NONE)
+    {
+        return false;
+    }
+
+    return site_state == site_state_below;
+}
+
+
+bool isBondRight(Particle latice_matrix[cubic_length][cubic_length][cubic_length], int x, int y, int z){
+
+    if (x == cubic_length - 1) { 
+        return false;
+    }
+
+    Color site_state = latice_matrix[x][y][z].color;
+    Color site_state_below = latice_matrix[x+1][y][z].color;
+
+    if (site_state == Color::NONE)
+    {
+        return false;
+    }
+
+    return site_state == site_state_below;
+}
+
+bool isBondBehind(Particle latice_matrix[cubic_length][cubic_length][cubic_length], int x, int y, int z){
+
+    if (y == cubic_length - 1) { 
+        return false;
+    }
+
+    Color site_state = latice_matrix[x][y][z].color;
+    Color site_state_below = latice_matrix[x][y+1][z].color;
+
+    if (site_state == Color::NONE)
+    {
+        return false;
+    }
+
+    return site_state == site_state_below;
+}
+
+/*
+int getPosition(int* lattice_matrix, int x, int y, int z){
+    return lattice_matrix[((x * cubic_Length) + y) * cubic_Length + z];
+}
+*/
+
+
 int main (int argc, char** argv)
 {
     int rtn = -1;
 
     morph::Visual v(1024, 768, "morph::PercolationVisual", {0,0}, {1,1,1}, 1.0f, 0.05f);
     v.zNear = 0.001;
-    v.showCoordArrows = true;
+    v.showCoordArrows = false;
     v.coordArrowsInScene = true;
     v.showTitle = true;
     // Blueish background:
     v.bgcolour = {0.6f, 0.6f, 0.8f, 0.5f};
     v.lightingEffects();
-    int cubic_length = 5;
+    
 
     Particle lattice_matrix[cubic_length][cubic_length][cubic_length];
+
+    // Lattice Matrix consists of elements with colors RED, GREEN or NONE 
+    // Lattice Array consists of x,y,z positions for every point that needs to be drawn; further clarification: that means elements that have colors RED or GREEN
 
     for (int x = 0; x < cubic_length; ++x) {
         for (int y = 0; y < cubic_length; ++y) {
             for (int z = 0; z < cubic_length; ++z) {
                 lattice_matrix[x][y][z] = Particle();
-                int a = rand() % 2 * 2 - 1; //0 or 1, time with 2, minus 1 to get +-1, -1 red +1 green, (* (-1) to flip color)
-                if (a == -1){
+                int a = rand() % 3; //0 , 1 or 2
+                if (a == 0){
                     lattice_matrix[x][y][z].color = Color::RED;
                 }
                 else if (a == 1){
@@ -54,48 +130,7 @@ int main (int argc, char** argv)
         }
     }
 
-    /* Below, Right, Behind
-
-    bool isBondBelow(int* latice_matrix, int x, int y, int z){
-
-        if (y === cubic_length - 1) { 
-            return false;
-        }
-
-        site_state = latice_matrix[x][y][z];
-        site_state_below = latice_matrix[x][y+1][z]
-
-	    return site_state == site_state_below;
-    }
-
-    bool isBondRight(int* latice_matrix, int x, int y, int z){
-
-        if (x === cubic_length - 1) { 
-            return false;
-        }
-
-        site_state = latice_matrix[x][y][z];
-        site_state_below = latice_matrix[x][y+1][z]
-
-	    return site_state == site_state_below;
-    }
-
-    bool isBondBehind(int* latice_matrix, int x, int y, int z){
-
-        if (z === cubic_length - 1) { 
-            return false;
-        }
-
-        site_state = getPosition(latice_matrix, x, y, z);
-        site_state_below = getPosition(latice_matrix, x, y+1, z);
-
-	    return site_state == site_state_below;
-    }
-    
-   int getPosition(int* lattice_matrix, int x, int y, int z){
-       return lattice_matrix[((x * cubic_Length) + y) * cubic_Length + z];
-   }
-   */
+   
 
     try {
         morph::Vector<float, 3> offset = { 0.0, 0.0, 0.0 };
@@ -140,6 +175,40 @@ int main (int argc, char** argv)
         sv->setScalarData (&data);
         sv->radiusFixed = 0.03f;
         //sv->colourScale = scale;
+
+        //drawLines between right colours 
+    
+        for (int i = 0; i < cubic_length; ++i) {
+            for (int j = 0; j < cubic_length; ++j) {
+                for (int k = 0; k < cubic_length; ++k){
+
+                    float x = 0.2*i;
+                    float y = 0.2*j;
+                    float z = 0.2*k;
+
+                    if (isBondAbove(lattice_matrix, i, j, k))
+                    {
+                        sv->drawLine( {x,y,z}, {x,y,z+0.2});
+                    }
+
+
+                    if (isBondRight(lattice_matrix, i, j, k))
+                    {
+                        sv->drawLine( {x,y,z}, {x+0.2,y,z});
+                    }
+
+                    if (isBondBehind(lattice_matrix, i, j, k))
+                    {
+                        sv->drawLine( {x,y,z}, {x,y+0.2,z});
+                    }
+
+                }
+               
+            }
+        }
+
+        sv->drawLine( {0,0,0} , {0,0,0.2} );
+
         sv->cm.setType (morph::ColourMapType::Rainbow);
         //sv->cm.setHueRG();
         sv->finalize();
