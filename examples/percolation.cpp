@@ -34,8 +34,81 @@ bool Bond::isBondPossible()               //If bond is to a particle of the same
     return false;
 };
 
+/* void drawFormedBonds(int scaling, morph::vVector<morph::Vector<float, 3>> *lattice_Array, morph::vVector<float> *colorData, Matrix *particleMatrix, morph::PercolationVisual<float>* sv) 
+{
+    size_t l = 0;
+    auto it = particleMatrix->get_allParticles().begin(); //begin() returns iterator with a pointer to the first element, ++ gives the pointer to the next element
 
-const int iterations = 1;
+    // Draw the bonds between right colours that have been formed 
+    for ( ; it != particleMatrix->get_allParticles().end(); it++)
+    {   
+        float x = it->position.x*scaling;
+        float y = it->position.y*scaling;
+        float z = it->position.z*scaling;
+
+        &lattice_Array[l] = {x, y, z};
+        
+        if (it->color == Color::RED)
+        {
+            &colorData[l] = 0;
+        }
+        else if (it->color == Color::GREEN)
+        {
+            &colorData[l] = 1;
+        }
+
+        if (it->up != nullptr && it->up->isFormed)
+        {   
+            sv->drawLine( {x,y,z}, {x,y,z+scaling});
+        }
+
+        if (it->right != nullptr && it->right->isFormed)
+        {
+            sv->drawLine( {x,y,z}, {x+scaling,y,z});
+        }
+
+        if (it->behind != nullptr && it->behind->isFormed)
+        {
+            sv->drawLine( {x,y,z}, {x,y+scaling,z});
+        }
+        l++;
+        
+    }
+};
+*/
+
+template<class Element>             //Get pointer to a random element in array
+Element* getRandomElement(std::vector<Element*> array){
+    
+    int randomElement = rand() % array.size();
+    
+    return array[randomElement];
+};
+
+//Find a neighbor that particle can swap with, in other words find neighbor that has different color, if none -> return nullptr
+Particle* findSwapableNeighbor(Particle *particle)
+{
+
+    if (particle->color != particle->up->b->color){
+        return particle->up->b;
+    }
+    else if (particle->color != particle->down->b->color){
+        return particle->down->b;
+    }
+    else if (particle->color != particle->right->b->color){
+        return particle->right->b;
+    }
+    else if (particle->color != particle->left->b->color){
+        return particle->left->b;
+    }
+    else if (particle->color != particle->behind->b->color){
+        return particle->behind->b;
+    }
+     else if (particle->color != particle->front->b->color){
+        return particle->front->b;
+    }
+};
+const int iterations = 4;
 const int cubic_length = 5;
 // Above, Right, Behind
 // Z is above direction
@@ -52,10 +125,12 @@ int main (int argc, char** argv)
     morph::Visual v(1024, 768, "morph::PercolationVisual", {0,0}, {1,1,1}, 1.0f, 0.05f);
     v.zNear = 0.001;
     v.showCoordArrows = false;
-    v.coordArrowsInScene = true;
+    v.coordArrowsInScene = false;
     v.showTitle = true;
     // Blueish background:
-    v.bgcolour = {0.6f, 0.6f, 0.8f, 0.5f};
+    //v.bgcolour = {0.6f, 0.6f, 0.8f, 0.5f};
+
+    v.bgcolour = {0.4f, 0.4f, 1.0f, 0.8f};
     v.lightingEffects();
 
 
@@ -73,31 +148,49 @@ int main (int argc, char** argv)
         // and setScalarData(const std::vector<T>* _data)
         // This is possible because morph::vVector derives from std::vector.
         morph::vVector<morph::Vector<float, 3>> lattice_Array(cubic_length*cubic_length*cubic_length);
-        morph::vVector<float> data(cubic_length*cubic_length*cubic_length);
+        morph::vVector<float> colorData(cubic_length*cubic_length*cubic_length);
 
         morph::PercolationVisual<float>* sv = new morph::PercolationVisual<float> (v.shaderprog, offset);
         sv->setDataCoords (&lattice_Array);
-        sv->setScalarData (&data);
+        sv->setScalarData (&colorData);
         sv->radiusFixed = 0.03f;
-
-        auto it = particleMatrix.get_allParticles().begin(); //begin() returns iterator with a pointer to the first element, ++ gives the pointer to the next element
-
-        size_t l = 0;
+        sv->cm.setType (morph::ColourMapType::Rainbow);
+        //sv->cm.setHueRG();
+        
+        
         float scaling = 0.2;
 
         for (int i = 0; i < iterations; i++){
 
+            //Form Random Bond, TO DO: Flytt til egen funksjon 
             auto allPossibleBonds = particleMatrix.getPossibleBonds();
-            int randomBond = rand() % allPossibleBonds.size(); // Random number from 0 to (length of allPossibleBonds)-1
-            allPossibleBonds[randomBond]->isFormed = true;
+            Bond *randomBond = getRandomElement(allPossibleBonds); // Random
+            randomBond->isFormed = true;
+            randomBond->a->isBonded = true;
+            randomBond->b->isBonded = true;
 
+            // //Swap two particles of different color
+            // auto allUnboundParticles = particleMatrix.getUnboundParticles();
+            // Particle *randomParticle = getRandomElement(allUnboundParticles);
+            // bool swapped;
+            // while (!swapped){
+            //     if (randomParticle.color != randomParticle.up.color)
+            // }
+
+            //Calculate probability P using two different methods
             int numberFormedBonds = particleMatrix.getFormedCount(); // Keeps track of how many bonds that have been formed, used to calculate p
 
-            double probablilityP= numberFormedBonds / (3*cubic_length*cubic_length*cubic_length);
-
+            double probablilityP = numberFormedBonds / (3*cubic_length*cubic_length*cubic_length);
+            double probabilityOtherP = numberFormedBonds / allPossibleBonds.size();    
+        
         }
 
+        //drawFormedBonds(scaling, &lattice_Array, &colorData, &particleMatrix, sv); 
 
+        size_t l = 0;
+        auto it = particleMatrix.get_allParticles().begin(); //begin() returns iterator with a pointer to the first element, ++ gives the pointer to the next element
+
+        // Draw the bonds between right colours that have been formed 
         for ( ; it != particleMatrix.get_allParticles().end(); it++)
         {   
             float x = it->position.x*scaling;
@@ -108,84 +201,32 @@ int main (int argc, char** argv)
             
             if (it->color == Color::RED)
             {
-                data[l] = 0;
+                colorData[l] = 0;
             }
             else if (it->color == Color::GREEN)
             {
-                data[l] = 1;
+                colorData[l] = 1;
             }
 
             if (it->up != nullptr && it->up->isFormed)
             {   
-                sv->drawLine( {x,y,z}, {x,y,z+0.2});
+                sv->drawLine( {x,y,z}, {x,y,z+scaling});
             }
 
             if (it->right != nullptr && it->right->isFormed)
             {
-                sv->drawLine( {x,y,z}, {x+0.2,y,z});
+                sv->drawLine( {x,y,z}, {x+scaling,y,z});
             }
 
             if (it->behind != nullptr && it->behind->isFormed)
             {
-                sv->drawLine( {x,y,z}, {x,y+0.2,z});
+                sv->drawLine( {x,y,z}, {x,y+scaling,z});
             }
             l++;
             
         }
-
-
-
-        //sv->colourScale = scale;
-
-        //drawLines between right colours 
-        //int possiblebondsCount = 0;
-        //std::vector<float> listofBonds();
-        //const std::map<int, int> listofBonds{};
-
-        /*
-        for (int i = 0; i < cubic_length; ++i) {
-            for (int j = 0; j < cubic_length; ++j) {
-                for (int k = 0; k < cubic_length; ++k){
-
-                    float x = 0.2*i;
-                    float y = 0.2*j;
-                    float z = 0.2*k;
-
-                    /*
-
-                    if (isBondAbove(lattice_matrix, i, j, k))
-                    {   
-                        sv->drawLine( {x,y,z}, {x,y,z+0.2});
-                    }
-
-
-                    if (isBondRight(lattice_matrix, i, j, k))
-                    {
-                        sv->drawLine( {x,y,z}, {x+0.2,y,z});
-                    }
-
-                    if (isBondBehind(lattice_matrix, i, j, k))
-                    {
-                        sv->drawLine( {x,y,z}, {x,y+0.2,z});
-                    }
-
-                    
-
-                }
-               
-            }
-        }
-        */
-
-        //int random = 1+ (rand() % 100; Random number from 1 to 100 
-
-        //sv->drawLine( {0,0,0} , {0,0,0.2} );
-
-        sv->cm.setType (morph::ColourMapType::Rainbow);
-        //sv->cm.setHueRG();
         sv->finalize();
         unsigned int visId = v.addVisualModel (sv);
-
         std::cout << "Added Visual with visId " << visId << std::endl;
 
         v.render();

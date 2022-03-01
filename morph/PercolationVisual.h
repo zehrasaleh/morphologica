@@ -37,16 +37,6 @@ namespace morph {
             this->viewmatrix.translate (this->mv_offset);
             this->zScale.setParams (1, 0);
             this->colourScale.do_autoscale = true; //Z changed this
-
-            
-            
-            /*VBOint idx = 0;
-
-            std::array<float, 3> x_axis_col = {1.0f, 0.0f, 0.0f}; // Red
-            std::array<float, 3> y_axis_col = {0.0f, 1.0f, 0.0f}; // Green
-            this->computeTube (this->idx, {0,0,0}, {0,0.2,0}, black_col, black_col,0.01); 
-            
-            */
             
         }
 

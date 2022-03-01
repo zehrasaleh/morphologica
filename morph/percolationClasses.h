@@ -55,7 +55,9 @@ struct Particle {
     
 	Color color = Color::NONE;
     Position position;
-    bool isBonded(){
+    bool isBonded;
+    
+    /*bool isBonded(){
         if ( up && up->isFormed ){
             return true;
         }
@@ -76,7 +78,7 @@ struct Particle {
         }
         return false;
     }
-
+    */
 
     Bond *up;                        // Information about the bonds in pos. z direction & neigihbor
     Bond *down;                      // Information about the bonds in neg. z direction & neighbor    
@@ -98,7 +100,7 @@ public:
                     
                     // Initialising all particles and setting the respective colors for each of them
                     auto *me = &allParticles[getPosition(x,y,z)];
-                    int randomNumb = rand() % 2; //0 , 1 or 2
+                    int randomNumb = rand() % 2; //0 , 1
 
                     if (randomNumb == 0){
                         me->color = Color::RED;
@@ -170,6 +172,22 @@ public:
            
         }
         return allPossibleBonds;
+    };
+
+    std::vector<Particle*> getUnboundParticles()  //Returns a list of pointers to all the particles that do not have any formed bonds
+    {
+        std::vector<Particle*> allUnboundParticles;
+        auto it = allParticles.begin(); //begin() returnerer iterator med peker til første element, ++ gir peker til neste element
+
+        for ( ; it != allParticles.end(); it++)
+        {  
+            if (!it->isBonded)
+            {
+                allUnboundParticles.push_back(&*it); 
+            }
+           
+        }
+        return allUnboundParticles;
     };
 
     const std::vector<Particle>& get_allParticles() //Returns a list of pointers to all the particles
